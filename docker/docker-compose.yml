@@ -1,0 +1,13 @@
+services:
+  redis:
+    container_name: cache-redis
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    command: [ "redis-server", "--requirepass", "1234" ]
+    networks:
+      - my-network
+
+networks:
+  my-network:
+    driver: bridge
