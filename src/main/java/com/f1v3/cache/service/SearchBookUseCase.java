@@ -23,10 +23,10 @@ public class SearchBookUseCase {
 
             return cacheManager.getFromCache(cacheKey)
                     .orElseGet(() -> {
-                        SearchBookResponse response = SearchBookResponse.from(searchBookAdapter.search(query, page));
-                        cacheManager.addToCache(cacheKey, response);
                         cacheManager.incrementCount(cacheKey);
 
+                        SearchBookResponse response = SearchBookResponse.from(searchBookAdapter.search(query, page));
+                        cacheManager.addToCache(cacheKey, response);
                         return response;
                     });
         } catch (Exception e) {
