@@ -4,10 +4,16 @@ redis:
     port: 6379
     password: 1234
 
-  slave:
-    host: localhost
-    port: 6380
-    password: 1234
+  slaves:
+    - host: localhost
+      port: 7001
+      password: 1234
+    - host: localhost
+      port: 7002
+      password: 1234
+    - host: localhost
+      port: 7003
+      password: 1234
 
 kakao:
   api:

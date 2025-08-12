@@ -36,10 +36,12 @@ public class RedisCacheManager implements BookCacheManager<SearchBookResponse> {
     public Optional<SearchBookResponse> getFromCache(String key) {
         try {
             if (!isThresholdReached(key)) {
+                log.info("Cache threshold not reached for key: {} (access count: {})", key, getCount(key));
                 return Optional.empty();
             }
 
             SearchBookResponse response = getBookData(key);
+            log.info("Cache hit for key: {} (access count: {})", key, getCount(key));
             return Optional.of(response);
 
         } catch (Exception e) {
@@ -52,6 +54,7 @@ public class RedisCacheManager implements BookCacheManager<SearchBookResponse> {
     public void incrementCount(String key) {
         String countKey = buildCountKey(key);
         redisCommand.incrementWithExpire(countKey, COUNT_TTL);
+        log.info("Incremented access count for key: {} (new count: {})", key, getCount(key));
     }
 
     @Override

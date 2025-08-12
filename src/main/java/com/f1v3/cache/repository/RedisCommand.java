@@ -1,6 +1,6 @@
 package com.f1v3.cache.repository;
 
-import org.springframework.beans.factory.annotation.Qualifier;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -12,15 +12,10 @@ import java.time.Duration;
  * @author Seungjo, Jeong
  */
 @Repository
+@RequiredArgsConstructor
 public class RedisCommand {
 
     private final RedisTemplate<String, Object> redisTemplate;
-
-    public RedisCommand(
-            @Qualifier("masterRedisTemplate") RedisTemplate<String, Object> redisTemplate
-    ) {
-        this.redisTemplate = redisTemplate;
-    }
 
     public void setData(String key, String value, Duration expiredTime) {
         redisTemplate.opsForValue().set(key, value, expiredTime);

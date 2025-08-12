@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.util.List;
+
 /**
  * Redis Properties Class.
  *
@@ -16,7 +18,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class RedisProperties {
 
     private Master master;
-    private Slave slave;
+    private List<Slave> slaves;
 
     @Data
     public static class Master {
