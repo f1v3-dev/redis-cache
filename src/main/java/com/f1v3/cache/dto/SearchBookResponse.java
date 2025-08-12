@@ -7,7 +7,8 @@ import java.util.List;
 
 public record SearchBookResponse(
         List<Book> books,
-        PageInfo pageInfo) {
+        PageInfo pageInfo
+) {
 
     public static SearchBookResponse from(SearchBookDTO dto) {
         List<Book> books = dto.books().stream()

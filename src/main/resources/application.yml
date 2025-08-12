@@ -1,8 +1,13 @@
-spring:
-  redis:
-    host: ${REDIS_HOST}
-    port: ${REDIS_PORT}
-    password: ${REDIS_PASSWORD}
+redis:
+  master:
+    host: localhost
+    port: 6379
+    password: 1234
+
+  slave:
+    host: localhost
+    port: 6380
+    password: 1234
 
 kakao:
   api:

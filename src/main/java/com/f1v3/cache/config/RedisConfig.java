@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -22,27 +23,44 @@ public class RedisConfig {
     private final RedisProperties redisProperties;
 
     @Bean
-    public LettuceConnectionFactory redisConnectionFactory() {
-        RedisStandaloneConfiguration configuration = new RedisStandaloneConfiguration();
-        configuration.setHostName(redisProperties.getHost());
-        configuration.setPort(redisProperties.getPort());
-        configuration.setPassword(redisProperties.getPassword());
+    @Primary
+    public LettuceConnectionFactory masterRedisConnectionFactory() {
+        RedisStandaloneConfiguration redisConfiguration = new RedisStandaloneConfiguration();
+        redisConfiguration.setHostName(redisProperties.getMaster().getHost());
+        redisConfiguration.setPort(redisProperties.getMaster().getPort());
+        redisConfiguration.setPassword(redisProperties.getMaster().getPassword());
 
-        return new LettuceConnectionFactory(configuration);
+        return new LettuceConnectionFactory(redisConfiguration);
     }
 
-    /**
-     * Key Value 쌍을 뭐로 사용해야할까?
-     * byte[]? String?
-     */
     @Bean
-    public RedisTemplate<String, Object> redisTemplate() {
+    @Primary
+    public RedisTemplate<String, Object> masterRedisTemplate() {
         RedisTemplate<String, Object> redisTemplate = new RedisTemplate<>();
-        redisTemplate.setConnectionFactory(redisConnectionFactory());
+        redisTemplate.setConnectionFactory(masterRedisConnectionFactory());
+
         redisTemplate.setKeySerializer(new StringRedisSerializer());
         redisTemplate.setValueSerializer(new StringRedisSerializer());
         return redisTemplate;
     }
 
+    @Bean
+    public LettuceConnectionFactory slaveRedisConnectionFactory() {
+        RedisStandaloneConfiguration redisConfiguration = new RedisStandaloneConfiguration();
+        redisConfiguration.setHostName(redisProperties.getSlave().getHost());
+        redisConfiguration.setPort(redisProperties.getSlave().getPort());
+        redisConfiguration.setPassword(redisProperties.getSlave().getPassword());
 
+        return new LettuceConnectionFactory(redisConfiguration);
+    }
+
+    @Bean
+    public RedisTemplate<String, Object> slaveRedisTemplate() {
+        RedisTemplate<String, Object> redisTemplate = new RedisTemplate<>();
+        redisTemplate.setConnectionFactory(slaveRedisConnectionFactory());
+
+        redisTemplate.setKeySerializer(new StringRedisSerializer());
+        redisTemplate.setValueSerializer(new StringRedisSerializer());
+        return redisTemplate;
+    }
 }

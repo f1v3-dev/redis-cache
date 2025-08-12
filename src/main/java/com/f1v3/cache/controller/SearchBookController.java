@@ -1,5 +1,6 @@
 package com.f1v3.cache.controller;
 
+import com.f1v3.cache.dto.SearchBookResponse;
 import com.f1v3.cache.service.SearchBookUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -24,7 +25,7 @@ public class SearchBookController {
     private final SearchBookUseCase searchBookUseCase;
 
     @GetMapping("/api/books")
-    public ResponseEntity<?> search(
+    public ResponseEntity<SearchBookResponse> search(
             @RequestParam String query,
             @RequestParam int page) {
 
