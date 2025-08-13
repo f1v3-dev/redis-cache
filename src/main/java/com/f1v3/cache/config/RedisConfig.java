@@ -36,7 +36,7 @@ public class RedisConfig {
                 );
 
         // 마스터/슬레이브 공통 패스워드 설정
-        redisConfig.setPassword(RedisPassword.of(redisProperties.getMaster().getPassword()));
+        redisConfig.setPassword(RedisPassword.of(redisProperties.getPassword()));
 
         // 슬레이브 노드 등록
         redisProperties.getSlaves().forEach(slave ->

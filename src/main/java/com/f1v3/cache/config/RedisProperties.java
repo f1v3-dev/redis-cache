@@ -19,18 +19,17 @@ public class RedisProperties {
 
     private Master master;
     private List<Slave> slaves;
+    private String password;
 
     @Data
     public static class Master {
         private String host;
         private int port;
-        private String password;
     }
 
     @Data
     public static class Slave {
         private String host;
         private int port;
-        private String password;
     }
 }
