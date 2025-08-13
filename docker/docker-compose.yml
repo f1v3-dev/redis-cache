@@ -13,7 +13,7 @@ services:
     container_name: redis-slave1
     ports:
       - "7001:6379"
-    command: ["redis-server", "--slaveof", "redis-master", "6379", "--masterauth", "1234", "--requirepass", "1234"]
+    command: ["redis-server", "--replicaof", "redis-master", "6379", "--masterauth", "1234", "--requirepass", "1234"]
     depends_on:
       - redis-master
     networks:
@@ -24,7 +24,7 @@ services:
     container_name: redis-slave2
     ports:
       - "7002:6379"
-    command: ["redis-server", "--slaveof", "redis-master", "6379", "--masterauth", "1234", "--requirepass", "1234"]
+    command: ["redis-server", "--replicaof", "redis-master", "6379", "--masterauth", "1234", "--requirepass", "1234"]
     depends_on:
       - redis-master
     networks:
@@ -35,7 +35,7 @@ services:
     container_name: redis-slave3
     ports:
       - "7003:6379"
-    command: ["redis-server", "--slaveof", "redis-master", "6379", "--masterauth", "1234", "--requirepass", "1234"]
+    command: ["redis-server", "--replicaof", "redis-master", "6379", "--masterauth", "1234", "--requirepass", "1234"]
     depends_on:
       - redis-master
     networks:
