@@ -4,7 +4,9 @@ services:
     container_name: redis-master
     ports:
       - "6379:6379"
-    command: ["redis-server", "--requirepass", "1234"]
+    volumes:
+      - ./redis/redis-master.conf:/usr/local/etc/redis/redis.conf
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
     networks:
       - my-network
 
@@ -13,7 +15,9 @@ services:
     container_name: redis-slave1
     ports:
       - "7001:6379"
-    command: ["redis-server", "--replicaof", "redis-master", "6379", "--masterauth", "1234", "--requirepass", "1234"]
+    volumes:
+      - ./redis/redis-slave.conf:/usr/local/etc/redis/redis.conf
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
     depends_on:
       - redis-master
     networks:
@@ -24,7 +28,9 @@ services:
     container_name: redis-slave2
     ports:
       - "7002:6379"
-    command: ["redis-server", "--replicaof", "redis-master", "6379", "--masterauth", "1234", "--requirepass", "1234"]
+    volumes:
+      - ./redis/redis-slave.conf:/usr/local/etc/redis/redis.conf
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
     depends_on:
       - redis-master
     networks:
@@ -35,7 +41,9 @@ services:
     container_name: redis-slave3
     ports:
       - "7003:6379"
-    command: ["redis-server", "--replicaof", "redis-master", "6379", "--masterauth", "1234", "--requirepass", "1234"]
+    volumes:
+      - ./redis/redis-slave.conf:/usr/local/etc/redis/redis.conf
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
     depends_on:
       - redis-master
     networks:
