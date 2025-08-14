@@ -1,4 +1,4 @@
-package com.f1v3.cache.config;
+package com.f1v3.cache.config.redis;
 
 import lombok.Data;
 import lombok.Getter;

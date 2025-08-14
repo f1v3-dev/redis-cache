@@ -1,4 +1,4 @@
-package com.f1v3.cache.config;
+package com.f1v3.cache.config.feign;
 
 import feign.Logger;
 import feign.Request;

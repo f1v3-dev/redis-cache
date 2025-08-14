@@ -1,4 +1,4 @@
-package com.f1v3.cache.config;
+package com.f1v3.cache.config.redis;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -10,7 +10,6 @@ import io.lettuce.core.ReadFrom;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisPassword;
 import org.springframework.data.redis.connection.RedisStaticMasterReplicaConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
@@ -26,7 +25,7 @@ public class RedisConfig {
     private final RedisProperties redisProperties;
 
     @Bean
-    public RedisConnectionFactory redisConnectionFactory() {
+    public LettuceConnectionFactory redisConnectionFactory() {
         // 슬레이브 우선 읽기 설정
         LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder()
                 .readFrom(ReadFrom.REPLICA_PREFERRED)

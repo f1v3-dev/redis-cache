@@ -1,4 +1,4 @@
-package com.f1v3.cache.config;
+package com.f1v3.cache.config.redis;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -32,7 +32,7 @@ public class RedisCacheConfig {
 
 
     @Bean
-    public CacheManager cacheManager(LettuceConnectionFactory connectionFactory) {
+    public CacheManager cacheManager(LettuceConnectionFactory redisConnectionFactory) {
         RedisCacheConfiguration cacheConfig = RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(Duration.ofMinutes(30L))
                 .serializeKeysWith(RedisSerializationContext.SerializationPair
@@ -41,7 +41,7 @@ public class RedisCacheConfig {
                         .fromSerializer(new GenericJackson2JsonRedisSerializer(objectMapper())))
                 .disableCachingNullValues();
 
-        return RedisCacheManager.builder(connectionFactory)
+        return RedisCacheManager.builder(redisConnectionFactory)
                 .cacheDefaults(cacheConfig)
                 .build();
     }
