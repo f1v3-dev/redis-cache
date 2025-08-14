@@ -1,6 +1,6 @@
 package com.f1v3.cache.controller;
 
-import com.f1v3.cache.common.QueryNormalizer;
+import com.f1v3.cache.common.normalizer.QueryNormalizer;
 import com.f1v3.cache.dto.SearchBookResponse;
 import com.f1v3.cache.service.SearchBookFacade;
 import lombok.RequiredArgsConstructor;

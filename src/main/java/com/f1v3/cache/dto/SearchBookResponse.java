@@ -1,14 +1,19 @@
 package com.f1v3.cache.dto;
 
 import com.f1v3.cache.clients.api.response.SearchBookDTO;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.util.List;
 
-public record SearchBookResponse(
-        List<Book> books,
-        PageInfo pageInfo
-) {
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class SearchBookResponse {
+    private List<Book> books;
+    private PageInfo pageInfo;
 
     public static SearchBookResponse from(SearchBookDTO dto) {
         List<Book> books = dto.books().stream()
@@ -28,18 +33,23 @@ public record SearchBookResponse(
         return new SearchBookResponse(books, pageInfo);
     }
 
-    public record Book(
-            String title,
-            String author,
-            LocalDate publishedAt,
-            String thumbnail) {
-
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class Book {
+        private String title;
+        private String author;
+        private LocalDate publishedAt;
+        private String thumbnail;
     }
 
-    public record PageInfo(
-            boolean isEnd,
-            int pageableCount,
-            int totalCount,
-            int page) {
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PageInfo {
+        private boolean isEnd;
+        private int pageableCount;
+        private int totalCount;
+        private int page;
     }
 }

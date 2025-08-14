@@ -22,8 +22,8 @@ public class SearchBookUseCase {
             cacheManager = "cacheManager"
     )
     public SearchBookResponse search(String query, int page) {
-        log.info("Searching books for query: {}, page: {}", query, page);
         return SearchBookResponse.from(searchBookAdapter.search(query, page));
     }
 
 }
+
