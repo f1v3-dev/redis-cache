@@ -1,4 +1,4 @@
-package com.f1v3.cache.common;
+package com.f1v3.cache.common.normalizer;
 
 import java.util.regex.Pattern;
 
