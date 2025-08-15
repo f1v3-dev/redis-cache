@@ -1,26 +1,26 @@
+
 redis:
   password: 1234
-  master:
-    host: localhost
-    port: 6379
-
-  slaves:
-    - host: localhost
-      port: 7001
-    - host: localhost
-      port: 7002
-    - host: localhost
-      port: 7003
-
-kakao:
-  api:
-    authorization: ${KAKAO_CLIENT_ID}
+  sentinel:
+    master: mymaster
+    nodes:
+      - host: redis-sentinel1
+        port: 26379
+      - host: redis-sentinel2
+        port: 26379
+      - host: redis-sentinel3
+        port: 26379
 
 spring:
   cloud:
     openfeign:
       circuitbreaker:
         enabled: true
+
+kakao:
+  api:
+    authorization: ${KAKAO_CLIENT_ID}
+
 
 resilience4j:
   circuitbreaker:
@@ -41,6 +41,4 @@ management:
       show-details: always
   health:
     circuitbreakers:
-      enabled: true
-    redis:
       enabled: true

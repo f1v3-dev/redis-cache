@@ -17,19 +17,19 @@ import java.util.List;
 @ConfigurationProperties(prefix = "redis")
 public class RedisProperties {
 
-    private Master master;
-    private List<Slave> slaves;
+    private Sentinel sentinel;
     private String password;
 
     @Data
-    public static class Master {
-        private String host;
-        private int port;
-    }
+    public static class Sentinel {
+        private String master;
+        private List<Node> nodes;
 
-    @Data
-    public static class Slave {
-        private String host;
-        private int port;
+        @Data
+        public static class Node {
+            private String host;
+            private int port;
+        }
+
     }
 }

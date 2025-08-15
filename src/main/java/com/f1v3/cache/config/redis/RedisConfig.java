@@ -7,16 +7,21 @@ import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.lettuce.core.ReadFrom;
+import io.lettuce.core.resource.DefaultClientResources;
+import io.lettuce.core.resource.Delay;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisPassword;
-import org.springframework.data.redis.connection.RedisStaticMasterReplicaConfiguration;
+import org.springframework.data.redis.connection.RedisSentinelConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
+
+import java.time.Duration;
 
 @Configuration
 @RequiredArgsConstructor
@@ -25,32 +30,36 @@ public class RedisConfig {
     private final RedisProperties redisProperties;
 
     @Bean
-    public LettuceConnectionFactory redisConnectionFactory() {
-        // 슬레이브 우선 읽기 설정
-        LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder()
+    public RedisConnectionFactory redisConnectionFactory() {
+
+        LettuceClientConfiguration clientConfiguration = LettuceClientConfiguration.builder()
                 .readFrom(ReadFrom.REPLICA_PREFERRED)
+                .commandTimeout(Duration.ofMillis(3000))
+                .clientResources(DefaultClientResources.builder()
+                        .reconnectDelay(Delay.exponential())
+                        .build())
                 .build();
 
-        // Master / Replica 구성
-        RedisStaticMasterReplicaConfiguration redisConfig =
-                new RedisStaticMasterReplicaConfiguration(
-                        redisProperties.getMaster().getHost(),
-                        redisProperties.getMaster().getPort()
-                );
+        LettuceConnectionFactory factory = new LettuceConnectionFactory(sentinelConfiguration(), clientConfiguration);
+        factory.setValidateConnection(true);
+        return factory;
+    }
 
-        // 마스터/슬레이브 공통 패스워드 설정
-        redisConfig.setPassword(RedisPassword.of(redisProperties.getPassword()));
+    private RedisSentinelConfiguration sentinelConfiguration() {
+        RedisSentinelConfiguration sentinelConfiguration = new RedisSentinelConfiguration()
+                .master(redisProperties.getSentinel().getMaster());
 
-        // 슬레이브 노드 등록
-        redisProperties.getSlaves().forEach(slave ->
-                redisConfig.addNode(slave.getHost(), slave.getPort())
+        // Sentinel 노드들 추가
+        redisProperties.getSentinel().getNodes().forEach(node ->
+            sentinelConfiguration.sentinel(node.getHost(), node.getPort())
         );
 
-        return new LettuceConnectionFactory(redisConfig, clientConfig);
+        sentinelConfiguration.setPassword(RedisPassword.of(redisProperties.getPassword()));
+        return sentinelConfiguration;
     }
 
     @Bean
-    public RedisTemplate<String, Object> redisTemplate(LettuceConnectionFactory redisConnectionFactory) {
+    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory redisConnectionFactory) {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(redisConnectionFactory);
 
