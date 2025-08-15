@@ -2,7 +2,7 @@ package com.f1v3.cache.controller;
 
 import com.f1v3.cache.common.normalizer.QueryNormalizer;
 import com.f1v3.cache.dto.SearchBookResponse;
-import com.f1v3.cache.service.SearchBookFacade;
+import com.f1v3.cache.service.SearchBookUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class SearchBookController {
 
-    private final SearchBookFacade searchBookFacade;
+    private final SearchBookUseCase searchBookUseCase;
 
     @GetMapping("/api/books")
     public ResponseEntity<SearchBookResponse> search(
@@ -26,7 +26,7 @@ public class SearchBookController {
             @RequestParam int page) {
 
         String normalizedQuery = QueryNormalizer.normalize(query);
-        return ResponseEntity.ok(searchBookFacade.search(normalizedQuery, page));
+        return ResponseEntity.ok(searchBookUseCase.search(normalizedQuery, page));
     }
 
 }
