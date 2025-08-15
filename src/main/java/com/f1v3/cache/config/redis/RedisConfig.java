@@ -34,9 +34,8 @@ public class RedisConfig {
 
         LettuceClientConfiguration clientConfiguration = LettuceClientConfiguration.builder()
                 .readFrom(ReadFrom.REPLICA_PREFERRED)
-                .commandTimeout(Duration.ofMillis(3000))
                 .clientResources(DefaultClientResources.builder()
-                        .reconnectDelay(Delay.exponential())
+                        .reconnectDelay(Delay.constant(Duration.ofMillis(100)))
                         .build())
                 .build();
 

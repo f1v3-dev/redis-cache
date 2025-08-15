@@ -38,6 +38,7 @@ public class CircuitBreakerProvider {
                 .minimumNumberOfCalls(circuitBreakerProperties.getMinimumNumberOfCalls())
                 .slidingWindowSize(circuitBreakerProperties.getSlidingWindowSize())
                 .permittedNumberOfCallsInHalfOpenState(circuitBreakerProperties.getPermittedNumberOfCallsInHalfOpenState())
+                .automaticTransitionFromOpenToHalfOpenEnabled(true)
                 .build();
 
         return circuitBreakerRegistry.circuitBreaker(CIRCUIT_REDIS, config);
