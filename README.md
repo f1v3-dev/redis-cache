@@ -1,120 +1,136 @@
-# Redis Cache
+# Redis Cache 프로젝트
 
-- Redis Cache를 사용하는 상황에서 HA(High Availability)와 부하 분산을 고려하여 Master/Slave 구성을 적용해본다.
-- 더 나아가, Redis Sentinel을 활용한 자동 장애 조치(Failover)를 구현한다.
-- 추가적으로 Redis Cluster에 대한 학습까지 진행한다.
+## 프로젝트 개요
 
-## 프로젝트 목표
+- 레디스를 활용한 캐시 시스템 구현 및 장애 대응 방안 학습
+- 외부 시스템의 장애가 애플리케이션까지의 장애로 전파되지 않도록 구성하는 것이 목표
+- 가용성을 높이기 위한 구조는 어떻게 만들어야 할까?
 
-> [Redis replication - redis document](https://redis.io/docs/latest/operate/oss_and_stack/management/replication/)
+## 아키텍처 및 흐름
 
-1. 레디스 서버에 장애가 발생하여 죽었을 때, 서비스에 문제가 없도록 대응하는 방법은 무엇일까?
-    - 캐시 호출이 안된다면, 직접 외부 API를 호출하는 구조를 생각해볼 수 있을 것 같음.
-    - 또한, 다른 레디스 서버에게 처리를 위임하는 방법도 있을 것으로 예상
+**현재 구성:**
 
-2. 레디스 서버가 다시 살아났을 때, 다시 캐시 저장소로 사용할 수 있도록 대응하는 방법은 무엇일까?
-    - 키워드: `Reconnect`, `RedisSystemException`
-    - https://meetup.nhncloud.com/posts/379
-
-3. 만약, 캐시 데이터를 업데이트 시켜야할 때 어떻게 잘 업데이트를 할 수 있을까?
-    - DELETE/INSERT 방식의 경우 텀이 발생하는데 그동안 트래픽이 몰린다면?
-    - MySQL - `ALTER TABLE ... RENAME TO ...` 방식이 생각이 남.
-    - 또한, 원자적으로 `Lua Script`를 활용할 수 있을까?
-
----
-
-## 아키텍처 다이어그램
-
-### Redis Master/Slave 구성도
+```
+Controller → UseCase (Circuit Breaker + Cache) → Adapter → External API
+```
 
 ```mermaid
-flowchart TD
-    Client[Spring Boot Application]
-    
-    subgraph Redis_Cluster[Redis Cluster]
-        Master[Redis Master<br/>Port: 6379<br/>Role: Write Only]
-        Slave1[Redis Slave 1<br/>Port: 7001<br/>Role: Read Only]
-        Slave2[Redis Slave 2<br/>Port: 7002<br/>Role: Read Only]
-        Slave3[Redis Slave 3<br/>Port: 7003<br/>Role: Read Only]
+graph LR
+    subgraph "Application Layer"
+        Controller --> UseCase
     end
     
-    Client -->|Write Operations| Master
-    Client -->|Read Operations| Slave1
-    Client -->|Read Operations| Slave2
-    Client -->|Read Operations| Slave3
+    subgraph "Infrastructure"
+        UseCase --> Cache[(Redis)]
+        UseCase --> API[External API]
+    end
     
-    Master -.->|Replication| Slave1
-    Master -.->|Replication| Slave2
-    Master -.->|Replication| Slave3
-    
-    style Master fill:#ff9999
-    style Slave1 fill:#99ccff
-    style Slave2 fill:#99ccff
-    style Slave3 fill:#99ccff
-    style Client fill:#99ff99
+    subgraph "Resilience"
+        UseCase -.-> CB[Circuit Breaker]
+        CB -.-> Fallback
+    end
 ```
 
-### 캐시 처리 플로우
+
+### 전체 시스템 플로우
+
+```mermaid
+flowchart LR
+    A[Client] --> B[Controller]
+    B --> C[UseCase]
+    C --> D{Circuit<br/>Breaker}
+    
+    D -->|CLOSED| E{Cache}
+    D -->|OPEN| F[Fallback]
+    
+    E -->|Hit| G[Return]
+    E -->|Miss| H[API Call]
+    
+    H --> I[Kakao API]
+    I --> J{Cache<br/>Condition}
+    J -->|Save| K[Store Cache]
+    J -->|Skip| G
+    K --> G
+    F --> G
+```
+
+
+
+### 서킷브레이커 상태 전환
+
+```mermaid
+stateDiagram-v2
+    [*] --> CLOSED
+    CLOSED --> OPEN: 실패율 임계값 초과
+    OPEN --> HALF_OPEN: 대기 시간 경과/호출 횟수 충족
+    HALF_OPEN --> CLOSED: 성공적인 호출
+    HALF_OPEN --> OPEN: 실패 발생
+    
+    note right of CLOSED
+        정상 상태
+        @Cacheable 동작
+    end note
+    
+    note right of OPEN
+        차단 상태
+        fallback 메서드 호출
+    end note
+    
+    note right of HALF_OPEN
+        반열림 상태
+        제한된 요청만 처리
+    end note
+```
+
+### Redis 장애 대응 시나리오
 
 ```mermaid
 flowchart TD
-    A["GET /api/v1/books/search?query=자바&page=1"] --> B["캐시 키 생성<br/>key = 'query:page'"]
-    B --> C["Redis에서 카운트 확인<br/>getCount(key)"]
-    C --> D{"카운트 >= THRESHOLD?"}
+    A[Redis 장애 발생] --> B{장애 유형}
     
-    D -->|Yes| E{"Redis Slave에서<br/>캐시 데이터 확인<br/>getFromCache(key)"}
-    D -->|No| F["임계값 미달<br/>캐시 사용 안함"]
+    B -->|연결 실패| C[애플리케이션 레벨 처리]
+    B -->|마스터 다운| D[인프라 레벨 처리]
     
-    E -->|Cache Hit| G["캐시 데이터 반환"]
+    C --> E[fallback 처리]
+    E --> G[캐시 없이 정상 처리]
     
-    F --> H["카운트 증가<br/>incrementCount(key)"]
-    H --> I["외부 API 호출<br/>Kakao Book Search API"]
-    I --> J["API 응답 데이터 획득"]
-    J --> K["Redis Master에<br/>캐시 데이터 저장 시도<br/>addToCache(key, response)"]
-    K --> L{"저장 조건 확인<br/>임계값 도달 & 유효한 데이터?"}
+    D --> H[Sentinel 감지]
+    H --> I[자동 Failover]
+    I --> J[새로운 마스터 선출]
+    J --> K[서비스 복구]
     
-    L -->|Yes| M["캐시에 데이터 저장"]
-    L -->|No| N["캐시 저장 안함"]
-    
-    M --> O["클라이언트에 응답"]
-    N --> O
-    G --> O
-    
-    P["Redis 장애 발생<br/>RedisSystemException"] -.-> Q["Fallback 처리<br/>직접 API 호출하여 응답"]
-    Q --> O
-    
-    style D fill:#fff9c4
-    style E fill:#fff9c4
-    style G fill:#d4edda
-    style H fill:#e1bee7
-    style I fill:#ffeaa7
-    style K fill:#ffcccb
-    style L fill:#ffcdd2
-    style M fill:#d4edda
-    style P fill:#cfd8dc
-    style Q fill:#fff3e0
+    G --> L[사용자에게 정상 응답]
+    K --> L
 ```
 
-## 테스트 시나리오
+## 학습 목표
 
-### 1단계: 단일 Master 테스트
+### Redis 장애 대응 방안
 
-- **구성**: Master 1개 (6379)
-- **목적**: 기본 캐시 동작 확인
-- **결과**: 정상적인 캐시 저장/조회 확인
+Redis 서버 장애가 발생해도 서비스가 문제없이 동작하는 구성 
 
-### 2단계: Master + Single Slave 테스트
+#### 1. 장애 처리 (애플리케이션 레벨, Fallback)
 
-- **구성**: Master 1개 (6379) + Slave 1개 (7001)
-- **목적**: 읽기/쓰기 분산 확인
-- **결과**:
-    - 쓰기 → Master
-    - 읽기 → Slave 우선
+- 가장 간단하게 `try-catch`로 예외 처리하는 방법 
+- 서킷브레이커를 통한 장애 전파 차단
+- 외부 API 직접 호출을 통한 Fallback 처리
 
-### 3단계: Master + Multiple Slaves 테스트
+#### 2. 장애 대응 (인프라 레벨, HA)
 
-- **구성**: Master 1개 (6379) + Slaves 3개 (7001, 7002, 7003)
-- **목적**: 읽기 부하 분산 및 가용성 확인
-- **결과**:
-    - 읽기 요청이 여러 슬레이브에 분산
-    - 슬레이브 장애 시 다른 슬레이브로 자동 전환
+- Master-Slave 구성을 통한 읽기 성능 향상
+- Sentinel을 통한 자동 장애 감지 및 failover
+- Cluster 구성을 통한 분산 처리 및 고가용성 확보
+
+## 주요 기능
+
+### 1. 캐시 시스템
+
+- Redis를 활용한 도서 검색 결과 캐시
+- TTL 30분 설정으로 메모리 효율적 관리 
+- 캐시 키: `query:page` 형태로 구성
+
+### 2. 서킷브레이커
+
+- Redis 캐시 장애 시 자동 fallback 처리
+- 장애 전파 차단을 통한 시스템 안정성 확보
+- AOP 기반 어노테이션으로 간결한 구현
