@@ -31,7 +31,7 @@ public class RedisCacheConfig {
     private static final Long CACHE_TTL_MINUTES = 30L;
 
     @Bean
-    public CacheManager cacheManager(LettuceConnectionFactory redisConnectionFactory) {
+    public CacheManager redisCacheManager(LettuceConnectionFactory redisConnectionFactory) {
         RedisCacheConfiguration cacheConfig = RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(Duration.ofMinutes(CACHE_TTL_MINUTES))
                 .serializeKeysWith(RedisSerializationContext.SerializationPair

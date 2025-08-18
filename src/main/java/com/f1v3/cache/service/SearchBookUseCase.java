@@ -24,7 +24,7 @@ public class SearchBookUseCase {
             value = "bookSearch",
             key = "#query + ':' + #page",
             unless = "#result == null or #result.books == null or #result.books.isEmpty()",
-            cacheManager = "cacheManager"
+            cacheManager = "redisCacheManager"
     )
     public SearchBookResponse search(String query, int page) {
         log.info("외부 API를 직접 호출합니다. query: {}, page: {}", query, page);
@@ -36,4 +36,7 @@ public class SearchBookUseCase {
         log.info("레디스를 사용할 수 없어 외부 API를 호출합니다. query: {}, page: {}", query, page);
         return SearchBookResponse.from(searchBookAdapter.search(query, page));
     }
+
+    // TODO: Cache stampede 상황 생각해보기!
+
 }
