@@ -22,15 +22,32 @@ kakao:
     authorization: ${KAKAO_CLIENT_ID}
 
 
+#resilience4j:
+#  circuitbreaker:
+#    failure-rate-threshold: 10   # 실패 10% 이상 시 서킷 오픈
+#    slow-call-duration-threshold: 500   # 500ms 이상 소요 시 실패로 간주
+#    slow-call-rate-threshold: 10   # slowCallDurationThreshold 초과 비율이 10% 이상 시 서킷 오픈
+#    wait-duration-in-open-state: 30000   # OPEN -> HALF-OPEN 전환 전 기다리는 시간
+#    minimum-number-of-calls: 50   # 집계에 필요한 최소 호출 수
+#    sliding-window-size: 100   # 서킷 CLOSE 상태에서 N회 호출 도달 시 failureRateThreshold 실패 비율 계산
+#    permitted-number-of-calls-in-half-open-state: 30   # HALFOPEN -> CLOSE or OPEN 으로 판단하기 위해 호출 횟수
+
 resilience4j:
   circuitbreaker:
-    failure-rate-threshold: 10   # 실패 10% 이상 시 서킷 오픈
-    slow-call-duration-threshold: 500   # 500ms 이상 소요 시 실패로 간주
-    slow-call-rate-threshold: 10   # slowCallDurationThreshold 초과 비율이 10% 이상 시 서킷 오픈
-    wait-duration-in-open-state: 30000   # OPEN -> HALF-OPEN 전환 전 기다리는 시간
-    minimum-number-of-calls: 50   # 집계에 필요한 최소 호출 수
-    sliding-window-size: 100   # 서킷 CLOSE 상태에서 N회 호출 도달 시 failureRateThreshold 실패 비율 계산
-    permitted-number-of-calls-in-half-open-state: 30   # HALFOPEN -> CLOSE or OPEN 으로 판단하기 위해 호출 횟수
+    instances:
+      CIRCUIT_REDIS:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 5                # 처음 5회만으로 판단
+        minimum-number-of-calls: 5            # 5회 도달 시 즉시 비율 계산
+        failure-rate-threshold: 1             # 1% → 5회 중 1회만 실패해도 OPEN
+        slow-call-duration-threshold: 500ms   # 500ms 초과를 슬로콜로 간주
+        slow-call-rate-threshold: 1           # 1% → 5회 중 1회만 슬로우여도 OPEN
+        permitted-number-of-calls-in-half-open-state: 1   # HALF-OPEN 탐색 1회만 허용
+        wait-duration-in-open-state: 5s       # 테스트 편의상 짧게
+        # Redis 타임아웃/접속 예외가 실패로 집계되도록 필요 시 추가
+        record-exceptions:
+          - io.lettuce.core.RedisException
+          - io.lettuce.core.RedisCommandTimeoutException
 
 management:
   endpoints:

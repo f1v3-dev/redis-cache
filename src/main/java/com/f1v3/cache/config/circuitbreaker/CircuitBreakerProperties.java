@@ -4,6 +4,8 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.util.List;
+
 /**
  * Resilience4j Circuit Breaker Properties.
  *
@@ -14,6 +16,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "resilience4j.circuitbreaker")
 public class CircuitBreakerProperties {
 
+    private String slidingWindowType;
     private int failureRateThreshold;
     private int slowCallDurationThreshold;
     private int slowCallRateThreshold;
@@ -21,4 +24,5 @@ public class CircuitBreakerProperties {
     private int minimumNumberOfCalls;
     private int slidingWindowSize;
     private int permittedNumberOfCallsInHalfOpenState;
+    private List<String> recordExceptions;
 }
