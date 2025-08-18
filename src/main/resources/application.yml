@@ -12,9 +12,6 @@ redis:
         port: 26379
 
 spring:
-  data:
-    redis:
-      timeout: 1s
   cloud:
     openfeign:
       circuitbreaker:

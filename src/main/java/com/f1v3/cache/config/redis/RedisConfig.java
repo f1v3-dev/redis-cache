@@ -6,9 +6,9 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.lettuce.core.ClientOptions;
 import io.lettuce.core.ReadFrom;
-import io.lettuce.core.resource.DefaultClientResources;
-import io.lettuce.core.resource.Delay;
+import io.lettuce.core.SocketOptions;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,11 +32,20 @@ public class RedisConfig {
     @Bean
     public RedisConnectionFactory redisConnectionFactory() {
 
+        SocketOptions socketOptions = SocketOptions.builder()
+                .connectTimeout(Duration.ofMillis(3000))
+                .build();
+
+        ClientOptions clientOptions = ClientOptions.builder()
+                .autoReconnect(true)
+                .socketOptions(socketOptions)
+                .build();
+
+
         LettuceClientConfiguration clientConfiguration = LettuceClientConfiguration.builder()
+                .commandTimeout(Duration.ofMillis(5000))
                 .readFrom(ReadFrom.REPLICA_PREFERRED)
-                .clientResources(DefaultClientResources.builder()
-                        .reconnectDelay(Delay.constant(Duration.ofMillis(100)))
-                        .build())
+                .clientOptions(clientOptions)
                 .build();
 
         LettuceConnectionFactory factory = new LettuceConnectionFactory(sentinelConfiguration(), clientConfiguration);
