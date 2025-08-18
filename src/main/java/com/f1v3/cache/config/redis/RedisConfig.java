@@ -33,7 +33,7 @@ public class RedisConfig {
     public RedisConnectionFactory redisConnectionFactory() {
 
         SocketOptions socketOptions = SocketOptions.builder()
-                .connectTimeout(Duration.ofMillis(3000))
+                .connectTimeout(Duration.ofMillis(1000))
                 .build();
 
         ClientOptions clientOptions = ClientOptions.builder()
@@ -43,7 +43,7 @@ public class RedisConfig {
 
 
         LettuceClientConfiguration clientConfiguration = LettuceClientConfiguration.builder()
-                .commandTimeout(Duration.ofMillis(5000))
+                .commandTimeout(Duration.ofMillis(3000))
                 .readFrom(ReadFrom.REPLICA_PREFERRED)
                 .clientOptions(clientOptions)
                 .build();
