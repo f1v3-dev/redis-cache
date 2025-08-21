@@ -13,7 +13,9 @@ redis:
 cache:
   per:
     beta: 1.0
-    default-ttl: 3600
+    default-ttl: 10_000  # 1시간 ms (3600 * 1000)
+    delta-key-suffix: ":delta"
+
 spring:
   cloud:
     openfeign:

@@ -116,6 +116,7 @@ public class PerRedisCacheManager {
     }
 
     private boolean shouldRecompute(CacheResult<String> cacheResult) {
+
         if (!cacheResult.isCacheHit() ||
                 cacheResult.getData() == null ||
                 cacheResult.getDelta() == null ||
@@ -123,8 +124,9 @@ public class PerRedisCacheManager {
             return true;
         }
 
-        return -cacheResult.getDelta() * cacheProperties.getBeta() * Math.log(random.nextDouble())
-                >= cacheResult.getRemainingTtl();
+        double randomPercentage = -cacheResult.getDelta() * cacheProperties.getBeta() * Math.log(random.nextDouble());
+        log.info("remainingTtl: {}, randomPercentage: {}", cacheResult.getRemainingTtl(), randomPercentage);
+        return randomPercentage >= cacheResult.getRemainingTtl();
     }
 
     private String getDeltaKey(String key) {
