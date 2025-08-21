@@ -24,8 +24,9 @@ public class SearchBookUseCase {
     public SearchBookResponse search(String query, int page) {
         String cacheKey = generateCacheKey(query, page);
 
-        return perRedisCacheManager.preGet(
+        return perRedisCacheManager.get(
                 cacheKey,
+                SearchBookResponse.class,
                 () -> SearchBookResponse.from(searchBookAdapter.search(query, page))
         );
     }

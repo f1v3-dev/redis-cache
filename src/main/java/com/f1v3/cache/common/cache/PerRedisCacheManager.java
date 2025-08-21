@@ -1,6 +1,8 @@
 package com.f1v3.cache.common.cache;
 
-import com.f1v3.cache.dto.SearchBookResponse;
+import com.f1v3.cache.common.cache.config.PerCacheProperties;
+import com.f1v3.cache.common.cache.dto.CacheResult;
+import com.f1v3.cache.common.cache.exception.CacheException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -22,74 +24,110 @@ public class PerRedisCacheManager {
     private final DefaultRedisScript<List> cacheGetRedisScript;
     private final DefaultRedisScript<String> cacheSetRedisScript;
     private final ObjectMapper objectMapper;
+    private final PerCacheProperties cacheProperties;
 
-    private static final double BETA = 1.0;
-    private static final long DEFAULT_TTL = 3600;
     private static final ThreadLocalRandom random = ThreadLocalRandom.current();
 
+    public <T> T get(String key, Class<T> clazz, Supplier<T> recomputer) {
+        try {
+            CacheResult<String> cacheResult = getCacheData(key);
 
-    public SearchBookResponse preGet(String key, Supplier<SearchBookResponse> recomputer) {
+            if (shouldRecompute(cacheResult)) {
+                return recomputeAndCache(key, recomputer);
+            }
 
+            log.info("캐시 조회 성공 - key: {}, remainingTtl: {}", key, cacheResult.getRemainingTtl());
+            return deserializeData(cacheResult.getData(), clazz);
+        } catch (Exception e) {
+            log.error("캐시 조회 중 오류 발생 - key: {}", key, e);
+            throw new CacheException("캐시 조회 실패", e);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private CacheResult<String> getCacheData(String key) {
         List<Object> result = redisTemplate.execute(
                 cacheGetRedisScript,
                 List.of(key, getDeltaKey(key))
         );
 
-        List<Object> valueList = (List<Object>) result.get(0);
-        Object cachedData = valueList.get(0);
+        if (result == null || result.size() < 2) {
+            return new CacheResult<>(null, null, null, false);
+        }
+
+        List<Object> valueList = (List<Object>) result.getFirst();
+        if (valueList == null || valueList.size() < 2) {
+            return new CacheResult<>(null, null, null, false);
+        }
+
+        String cachedData = (String) valueList.getFirst();
         Integer delta = (Integer) valueList.get(1);
         Long remainingTtl = (Long) result.get(1);
 
-        boolean isShouldRecomputation = shouldRecompute(cachedData, delta, remainingTtl);
+        return new CacheResult<>(cachedData, delta, remainingTtl, cachedData != null);
+    }
 
-        if (isShouldRecomputation) {
-            log.info("캐시 재계산 필요 - key: {}, delta: {}, remainingTtl: {}", key, delta, remainingTtl);
-            long startTime = System.currentTimeMillis();
-            SearchBookResponse freshData = recomputer.get();
-            long computationTime = System.currentTimeMillis() - startTime;
+    private <T> T recomputeAndCache(String key, Supplier<T> recomputer) {
+        log.info("캐시 재계산 시작 - key: {}", key);
 
-            put(key, freshData, computationTime);
-            return freshData;
-        }
+        long startTime = System.currentTimeMillis();
+        T newData = recomputer.get();
+        long computationTime = System.currentTimeMillis() - startTime;
 
+        put(key, newData, computationTime);
+
+        log.info("캐시 재계산 완료 - key: {}, computationTime: {}ms", key, computationTime);
+        return newData;
+    }
+
+    private <T> T deserializeData(String cachedData, Class<T> clazz) {
         try {
-            return objectMapper.readValue((String) cachedData, SearchBookResponse.class);
+            return objectMapper.readValue(cachedData, clazz);
         } catch (JsonProcessingException e) {
-            log.warn("캐시 데이터 역직렬화 실패 - key: {}, error: {}", key, e.getMessage());
-            throw new RuntimeException("캐시 데이터 역직렬화 실패", e);
+            log.warn("캐시 데이터 역직렬화 실패 - error: {}", e.getMessage());
+            throw new CacheException("캐시 데이터 역직렬화 실패", e);
         }
     }
 
-    private void put(String key, SearchBookResponse value, long computationTime) {
+    private <T> void put(String key, T value, long computationTime) {
         try {
             String deltaKey = getDeltaKey(key);
-            String serializedValue = objectMapper.writeValueAsString(value);
+            String serializedValue = serializeValue(value);
 
             redisTemplate.execute(
                     cacheSetRedisScript,
                     List.of(key, deltaKey),
                     serializedValue,
                     computationTime,
-                    DEFAULT_TTL
+                    cacheProperties.getDefaultTtl()
             );
 
-            log.info("캐시 저장 성공 - key: {}, computationTime: {}ms, ttl: {}초", key, computationTime, DEFAULT_TTL);
         } catch (Exception e) {
-            log.error("캐시 저장 실패 - key: {}, error: {}", key, e.getMessage(), e);
+            throw new CacheException("캐시 저장 실패", e);
         }
     }
 
-    private boolean shouldRecompute(Object cachedData, Integer delta, Long remainingTtl) {
-        if (cachedData == null || delta == null || remainingTtl == null) {
+    private <T> String serializeValue(T value) {
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (JsonProcessingException e) {
+            throw new CacheException("데이터 직렬화 실패", e);
+        }
+    }
+
+    private boolean shouldRecompute(CacheResult<String> cacheResult) {
+        if (!cacheResult.isCacheHit() ||
+                cacheResult.getData() == null ||
+                cacheResult.getDelta() == null ||
+                cacheResult.getRemainingTtl() == null) {
             return true;
         }
 
-        double randomValue = random.nextDouble();
-        return -delta * BETA * Math.log(randomValue) >= remainingTtl;
+        return -cacheResult.getDelta() * cacheProperties.getBeta() * Math.log(random.nextDouble())
+                >= cacheResult.getRemainingTtl();
     }
 
-
     private String getDeltaKey(String key) {
-        return key + ":delta";
+        return key + cacheProperties.getDeltaKeySuffix();
     }
 }
