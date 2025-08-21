@@ -28,6 +28,8 @@ import java.time.Duration;
 @EnableCaching
 public class RedisCacheConfig {
 
+    // fixme: RedisTemplate을 직접 사용해서 더 이상 CacheMangager를 사용하지 않는 상황
+
     private static final Long CACHE_TTL_MINUTES = 30L;
 
     @Bean
