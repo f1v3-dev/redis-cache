@@ -12,8 +12,8 @@ redis:
 
 cache:
   per:
-    beta: 1.0
-    default-ttl: 10_000  # 1시간 ms (3600 * 1000)
+    beta: 1.5  # 더 적극적인 사전 갱신을 위해 1.5로 증가
+    default-ttl: 5_000  # 5초로 단축하여 더 빈번한 TTL 만료 유발
     delta-key-suffix: ":delta"
 
 spring:
@@ -42,13 +42,13 @@ resilience4j:
     instances:
       CIRCUIT_REDIS:
         sliding-window-type: COUNT_BASED
-        sliding-window-size: 5                # 처음 5회만으로 판단
-        minimum-number-of-calls: 5            # 5회 도달 시 즉시 비율 계산
-        failure-rate-threshold: 1             # 1% → 5회 중 1회만 실패해도 OPEN
-        slow-call-duration-threshold: 500ms   # 500ms 초과를 슬로콜로 간주
-        slow-call-rate-threshold: 1           # 1% → 5회 중 1회만 슬로우여도 OPEN
-        permitted-number-of-calls-in-half-open-state: 1   # HALF-OPEN 탐색 1회만 허용
-        wait-duration-in-open-state: 5s       # 테스트 편의상 짧게
+        sliding-window-size: 20               # 20회로 더 많은 데이터로 판단
+        minimum-number-of-calls: 10           # 10회 이후부터 비율 계산 시작
+        failure-rate-threshold: 30            # 30% → 더 관대하게 설정
+        slow-call-duration-threshold: 2000ms  # 2초로 늘림 (PER 테스트용 어댑터 고려)
+        slow-call-rate-threshold: 50          # 50% → 절반이 슬로우여야 OPEN
+        permitted-number-of-calls-in-half-open-state: 5   # HALF-OPEN에서 5회 탐색
+        wait-duration-in-open-state: 10s      # 10초로 늘려서 복구 시간 확보
         # Redis 타임아웃/접속 예외가 실패로 집계되도록 필요 시 추가
         record-exceptions:
           - io.lettuce.core.RedisException

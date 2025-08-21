@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class PerRedisCacheManager {
@@ -35,11 +34,8 @@ public class PerRedisCacheManager {
             if (shouldRecompute(cacheResult)) {
                 return recomputeAndCache(key, recomputer);
             }
-
-            log.info("캐시 조회 성공 - key: {}, remainingTtl: {}", key, cacheResult.getRemainingTtl());
             return deserializeData(cacheResult.getData(), clazz);
         } catch (Exception e) {
-            log.error("캐시 조회 중 오류 발생 - key: {}", key, e);
             throw new CacheException("캐시 조회 실패", e);
         }
     }
@@ -68,7 +64,6 @@ public class PerRedisCacheManager {
     }
 
     private <T> T recomputeAndCache(String key, Supplier<T> recomputer) {
-        log.info("캐시 재계산 시작 - key: {}", key);
 
         long startTime = System.currentTimeMillis();
         T newData = recomputer.get();
@@ -76,7 +71,6 @@ public class PerRedisCacheManager {
 
         put(key, newData, computationTime);
 
-        log.info("캐시 재계산 완료 - key: {}, computationTime: {}ms", key, computationTime);
         return newData;
     }
 
@@ -84,7 +78,6 @@ public class PerRedisCacheManager {
         try {
             return objectMapper.readValue(cachedData, clazz);
         } catch (JsonProcessingException e) {
-            log.warn("캐시 데이터 역직렬화 실패 - error: {}", e.getMessage());
             throw new CacheException("캐시 데이터 역직렬화 실패", e);
         }
     }
@@ -124,9 +117,12 @@ public class PerRedisCacheManager {
             return true;
         }
 
-        double randomPercentage = -cacheResult.getDelta() * cacheProperties.getBeta() * Math.log(random.nextDouble());
-        log.info("remainingTtl: {}, randomPercentage: {}", cacheResult.getRemainingTtl(), randomPercentage);
-        return randomPercentage >= cacheResult.getRemainingTtl();
+        double randomValue = random.nextDouble(); // 0~1 사이
+        double logRandom = Math.log(randomValue); // 항상 음수값
+        double threshold = cacheResult.getDelta() * cacheProperties.getBeta() * (-logRandom); // 음수를 양수로 변환
+
+        boolean shouldRecompute = cacheResult.getRemainingTtl() <= threshold;
+        return shouldRecompute;
     }
 
     private String getDeltaKey(String key) {
