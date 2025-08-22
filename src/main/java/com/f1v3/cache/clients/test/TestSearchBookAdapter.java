@@ -9,12 +9,14 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 @Component
 public class TestSearchBookAdapter implements SearchBookAdapter {
 
     private final Random random = new Random();
+    public static final AtomicInteger REQUEST_COUNT = new AtomicInteger(0);
 
     // 테스트용 책 데이터
     private static final List<String> BOOK_TITLES = List.of(
@@ -47,6 +49,7 @@ public class TestSearchBookAdapter implements SearchBookAdapter {
             log.error("Thread was interrupted: {}", e.getMessage());
         }
 
+        REQUEST_COUNT.incrementAndGet();
         return generateTestSearchResult(query, page);
     }
 
