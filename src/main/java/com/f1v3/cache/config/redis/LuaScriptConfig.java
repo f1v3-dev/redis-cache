@@ -31,4 +31,13 @@ public class LuaScriptConfig {
         redisScript.setResultType(String.class);
         return redisScript;
     }
+
+    @Bean
+    public DefaultRedisScript<Long> unlockScript() {
+        DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+        script.setScriptSource(new ResourceScriptSource(new ClassPathResource("lua/unlock.lua")));
+        script.setResultType(Long.class);
+        return script;
+    }
+
 }
