@@ -1,3 +1,4 @@
+# Cache properties
 redis:
   password: 1234
   sentinel:
@@ -12,9 +13,15 @@ redis:
 
 cache:
   per:
-    beta: 1.5  # 더 적극적인 사전 갱신을 위해 1.5로 증가
-    default-ttl: 5_000  # 5초로 단축하여 더 빈번한 TTL 만료 유발
+    beta: 1.5
+    default-ttl: 5_000
     delta-key-suffix: ":delta"
+    default-lock-ttl-ms: 600
+    base-backoff-ms: 40
+    max-jitter-ms: 20
+    retry-attempts: 1
+
+---
 
 spring:
   cloud:
